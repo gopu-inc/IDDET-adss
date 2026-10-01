@@ -1,0 +1,10 @@
+{
+  "outputDirectory": "artifacts/iddet-ads/dist/public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://TON-SERVICE.onrender.com/api/:path*"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
