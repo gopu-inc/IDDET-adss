@@ -1,0 +1,533 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: IDDET Ads API for an embedded Shopify Dev App
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: dashboard
+    description: IDDET Ads overview
+  - name: shopify
+    description: Shopify managed installation and catalog sync
+  - name: iddet
+    description: Connected IDDET accounts and communities
+  - name: ads
+    description: Product ad drafts and publication
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /overview:
+    get:
+      operationId: getOverview
+      tags: [dashboard]
+      summary: Get the current shop overview
+      responses:
+        "200":
+          description: Overview data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Overview"
+        "401":
+          description: Missing or invalid Shopify session token
+  /auth/session:
+    get:
+      operationId: getIddetSession
+      tags: [iddet]
+      summary: Get the current IDDET login session
+      responses:
+        "200":
+          description: Current login status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IddetSession"
+  /auth/iddet/login:
+    post:
+      operationId: loginWithIddet
+      tags: [iddet]
+      summary: Sign in with IDDET credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IddetConnectInput"
+      responses:
+        "200":
+          description: IDDET login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IddetSession"
+        "401":
+          description: Invalid IDDET credentials
+  /auth/logout:
+    post:
+      operationId: logoutIddet
+      tags: [iddet]
+      summary: End the current IDDET session
+      responses:
+        "200":
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IddetSession"
+  /shopify/oauth/start:
+    get:
+      operationId: startShopifyOAuth
+      tags: [shopify]
+      summary: Redirect the signed-in user to Shopify authorization
+      parameters:
+        - name: shop
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-zA-Z0-9][a-zA-Z0-9-]*\\.myshopify\\.com$"
+      responses:
+        "302":
+          description: Redirect to Shopify authorization
+        "400":
+          description: Invalid shop domain
+        "401":
+          description: IDDET login required
+  /shopify/oauth/callback:
+    get:
+      operationId: completeShopifyOAuth
+      tags: [shopify]
+      summary: Complete Shopify authorization and return to the dashboard
+      parameters:
+        - name: shop
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: hmac
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect back to the IDDET Ads dashboard
+        "400":
+          description: Invalid Shopify OAuth response
+  /shopify/connection:
+    get:
+      operationId: getShopifyConnection
+      tags: [shopify]
+      summary: Get Shopify managed-installation status for the current shop
+      responses:
+        "200":
+          description: Shopify connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopifyConnection"
+        "401":
+          description: Missing or invalid Shopify session token
+  /shopify/sync:
+    post:
+      operationId: syncShopifyProducts
+      tags: [shopify]
+      summary: Sync products from the current Shopify shop through the Admin GraphQL API
+      responses:
+        "200":
+          description: Updated product list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+        "401":
+          description: Missing or invalid Shopify session token
+  /products:
+    get:
+      operationId: listProducts
+      tags: [shopify]
+      summary: List catalog products for the current shop
+      responses:
+        "200":
+          description: Catalog products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+        "401":
+          description: Missing or invalid Shopify session token
+  /iddet/accounts:
+    get:
+      operationId: listIddetAccounts
+      tags: [iddet]
+      summary: List IDDET accounts connected to the current shop
+      responses:
+        "200":
+          description: Connected accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IddetAccount"
+        "401":
+          description: Missing or invalid Shopify session token
+  /iddet/connect:
+    post:
+      operationId: connectIddetAccount
+      tags: [iddet]
+      summary: Connect an IDDET publishing account for the current shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IddetConnectInput"
+      responses:
+        "200":
+          description: Connected IDDET account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IddetAccount"
+        "401":
+          description: Invalid Shopify session or IDDET credentials
+  /iddet/communities:
+    get:
+      operationId: listIddetCommunities
+      tags: [iddet]
+      summary: List IDDET communities for the current shop
+      responses:
+        "200":
+          description: Communities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IddetCommunity"
+        "401":
+          description: Missing or invalid Shopify session token
+  /ad-drafts:
+    get:
+      operationId: listAdDrafts
+      tags: [ads]
+      summary: List ad drafts and published ads for the current shop
+      responses:
+        "200":
+          description: Ad drafts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdDraft"
+        "401":
+          description: Missing or invalid Shopify session token
+    post:
+      operationId: createAdDraft
+      tags: [ads]
+      summary: Create an ad draft from a product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdDraftInput"
+      responses:
+        "201":
+          description: Created ad draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdDraft"
+        "400":
+          description: Invalid draft
+        "401":
+          description: Missing or invalid Shopify session token
+  /ad-drafts/{id}/publish:
+    post:
+      operationId: publishAdDraft
+      tags: [ads]
+      summary: Publish an ad draft to an IDDET community
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Published ad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdDraft"
+        "404":
+          description: Draft not found
+        "401":
+          description: Missing or invalid Shopify session token
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    ShopifyConnection:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        storeDomain:
+          type: ["string", "null"]
+        storeName:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [connected, needs_setup, needs_reauth]
+        appUrl:
+          type: string
+        callbackPath:
+          type: ["string", "null"]
+        authUrl:
+          type: ["string", "null"]
+        shopifyUserName:
+          type: ["string", "null"]
+        iddetConnected:
+          type: boolean
+      required:
+        - connected
+        - storeDomain
+        - storeName
+        - status
+        - appUrl
+        - callbackPath
+        - authUrl
+        - shopifyUserName
+        - iddetConnected
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, draft, archived]
+        adStatus:
+          type: string
+          enum: [not_started, draft, published]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - price
+        - currency
+        - imageUrl
+        - status
+        - adStatus
+        - createdAt
+    IddetAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        avatarUrl:
+          type: string
+        connectedAt:
+          type: string
+          format: date-time
+      required: [id, username, avatarUrl, connectedAt]
+    IddetConnectInput:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+        password:
+          type: string
+          minLength: 6
+          writeOnly: true
+      required: [username, password]
+    IddetSession:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        shopDomain:
+          type: ["string", "null"]
+      required: [authenticated, username, avatarUrl, shopDomain]
+    IddetCommunity:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        memberCount:
+          type: integer
+        isMember:
+          type: boolean
+      required: [id, slug, name, memberCount, isMember]
+    AdDraftInput:
+      type: object
+      properties:
+        productId:
+          type: string
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        accountId:
+          type: string
+        communityId:
+          type: string
+      required: [productId, title, content, accountId, communityId]
+    AdDraft:
+      type: object
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        productTitle:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        destinationUrl:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+        accountId:
+          type: string
+        accountUsername:
+          type: string
+        communityId:
+          type: string
+        communityName:
+          type: string
+        publishedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - productId
+        - productTitle
+        - title
+        - content
+        - imageUrl
+        - destinationUrl
+        - status
+        - accountId
+        - accountUsername
+        - communityId
+        - communityName
+        - publishedAt
+        - createdAt
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [product, draft, publish, connection]
+        label:
+          type: string
+        detail:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, label, detail, createdAt]
+    Overview:
+      type: object
+      properties:
+        storeStatus:
+          type: string
+          enum: [connected, needs_setup, needs_reauth]
+        storeName:
+          type: ["string", "null"]
+        productCount:
+          type: integer
+        draftCount:
+          type: integer
+        publishedCount:
+          type: integer
+        connectedAccountCount:
+          type: integer
+        publishedThisWeek:
+          type: integer
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+      required:
+        - storeStatus
+        - storeName
+        - productCount
+        - draftCount
+        - publishedCount
+        - connectedAccountCount
+        - publishedThisWeek
+        - activity

@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "IDDET Ads"
+description = "Workspace embedded for Shopify merchants to sync products, create IDDET ad drafts, connect an IDDET account, and publish campaigns to IDDET communities."
+version = "1.0.0"
+id = "artifacts/iddet-ads"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18478
+
+[services.development]
+run = "pnpm --filter @workspace/iddet-ads run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/iddet-ads", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/iddet-ads/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18478"
+BASE_PATH = "/"
